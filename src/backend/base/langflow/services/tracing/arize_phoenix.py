@@ -38,7 +38,7 @@ from langflow.services.tracing.base import BaseTracer
 # from traceloop.sdk import Traceloop
 
 # Traceloop.init(
-#     api_key="tl_ff55bd3bb9c044e1a54d294ba768fa23",
+#     api_key="<api key>",
 #     disable_batch=True,
 #     environment="dev",  # Optional: dev/staging/prod
 #     app_name="LangFlow",
