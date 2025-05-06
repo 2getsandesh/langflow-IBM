@@ -10,6 +10,7 @@ from typing_extensions import override
 
 from langflow.services.tracing.base import BaseTracer
 
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from uuid import UUID
@@ -18,6 +19,8 @@ if TYPE_CHECKING:
 
     from langflow.graph.vertex.base import Vertex
     from langflow.services.tracing.schema import Log
+
+#Traceloop.init(app_name="LANGFLOW_TRACES")
 
 
 class LangFuseTracer(BaseTracer):
@@ -41,6 +44,9 @@ class LangFuseTracer(BaseTracer):
         self.flow_id = trace_name.split(" - ")[-1]
         self.spans: dict = OrderedDict()  # spans that are not ended
 
+        print(f"LangFuseTracer initialized with trace_id: {trace_id}, trace_name: {trace_name}, trace_type: {trace_type}")
+
+
         config = self._get_config()
         self._ready: bool = self.setup_langfuse(config) if config else False
 
@@ -50,6 +56,7 @@ class LangFuseTracer(BaseTracer):
 
     def setup_langfuse(self, config) -> bool:
         try:
+
             from langfuse import Langfuse
 
             self._client = Langfuse(**config)
@@ -90,6 +97,9 @@ class LangFuseTracer(BaseTracer):
         start_time = datetime.now(tz=timezone.utc)
         if not self._ready:
             return
+        
+        print("LANGFUSE ADD TRACE METHOD")
+        print(f"TRACE ID: {trace_id}, TRACE NAME: {trace_name}, TRACE TYPE: {trace_type}, INPUTS: {inputs}")
 
         metadata_: dict = {"from_langflow_component": True, "component_id": trace_id}
         metadata_ |= {"trace_type": trace_type} if trace_type else {}
