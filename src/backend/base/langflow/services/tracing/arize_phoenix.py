@@ -21,6 +21,48 @@ from langflow.schema.data import Data
 from langflow.schema.message import Message
 from langflow.services.tracing.base import BaseTracer
 
+# from opentelemetry import trace
+# from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+# from opentelemetry.sdk.trace import TracerProvider
+# from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+# endpoint = "https://otlp-magenta-saas.instana.rocks:4317"
+# tracer_provider = TracerProvider()
+# print("tracer provider creation initiated")
+# tracer_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(endpoint=endpoint, headers="x-instana-key=n399JZhWQtuwd6pB42oukg")))
+# print("tracer provider added")
+# trace.set_tracer_provider(tracer_provider)
+# print("tracer provider set")
+
+
+
+# from traceloop.sdk import Traceloop
+
+# Traceloop.init(
+#     api_key="tl_ff55bd3bb9c044e1a54d294ba768fa23",
+#     disable_batch=True,
+#     environment="dev",  # Optional: dev/staging/prod
+#     app_name="LangFlow",
+#     tracing=True  # Enable LangChain tracing
+# )
+
+
+
+# Import open-telemetry dependencies
+# from arize.otel import register
+
+# # Setup OTel via our convenience function
+# tracer_provider = register(
+#     arize_space_id = "U3BhY2U6MTkyMTY6STNsMg==",
+#     arize_api_key = "473b12647ab0a2c7a50",
+#     project_name = "Langflow-May",
+# )
+
+# # Import the automatic instrumentor from OpenInference
+# from openinference.instrumentation.langchain import LangChainInstrumentor
+
+# # Finish automatic instrumentation
+# LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from uuid import UUID
@@ -71,6 +113,10 @@ class ArizePhoenixTracer(BaseTracer):
             self.root_span.set_attribute("langflow.project.name", self.project_name)
             self.root_span.set_attribute("langflow.flow.name", self.flow_name)
             self.root_span.set_attribute("langflow.flow.id", self.flow_id)
+            print("ARIZE PHOENIX INIT METHOD")
+            print(f"TRACE ID: {trace_id}, TRACE NAME: {trace_name}, TRACE TYPE: {trace_type}")
+            print("ROOT SPAN ID: " + str(self.root_span.get_span_context().span_id))
+            print("ROOT SPAN TRACE ID: " + str(self.root_span.get_span_context().trace_id))
 
             with use_span(self.root_span, end_on_exit=False):
                 self.propagator.inject(carrier=self.carrier)
@@ -107,6 +153,8 @@ class ArizePhoenixTracer(BaseTracer):
             "space_id": arize_space_id,
             "authorization": f"Bearer {arize_api_key}",
         }
+
+
 
         # Phoenix Config
         phoenix_api_key = os.getenv("PHOENIX_API_KEY", None)
@@ -187,6 +235,9 @@ class ArizePhoenixTracer(BaseTracer):
         vertex: Vertex | None = None,
     ) -> None:
         """Adds a trace span, attaching inputs and metadata as attributes."""
+
+        print("ARIZE PHOENIX ADD TRACE METHOD")
+        print(trace_id + " " + trace_name)
         if not self._ready:
             return
 
@@ -196,6 +247,8 @@ class ArizePhoenixTracer(BaseTracer):
             context=span_context,
             start_time=self._get_current_timestamp(),
         )
+        print("ARIZE PHOENIX ADD TRACE METHOD")
+        print(trace_id + " " + trace_name)
 
         if trace_type == "prompt":
             child_span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, "chain")
@@ -219,6 +272,8 @@ class ArizePhoenixTracer(BaseTracer):
             self.chat_output_value = processed_inputs["input_value"]
 
         self.child_spans[trace_id] = child_span
+        print("CHAT INPUT VALUE + " + self.chat_input_value)
+        print("CHAT OUTPUT VALUE + " + self.chat_output_value)
 
     @override
     def end_trace(
@@ -236,6 +291,7 @@ class ArizePhoenixTracer(BaseTracer):
         child_span = self.child_spans[trace_id]
 
         processed_outputs = self._convert_to_arize_phoenix_types(outputs) if outputs else {}
+        print("PROCESSED OUTPUTS " + str(processed_outputs))
         if processed_outputs:
             child_span.set_attribute(SpanAttributes.OUTPUT_VALUE, self._safe_json_dumps(processed_outputs))
             child_span.set_attribute(SpanAttributes.OUTPUT_MIME_TYPE, OpenInferenceMimeTypeValues.JSON.value)
@@ -369,3 +425,4 @@ class ArizePhoenixTracer(BaseTracer):
     def get_langchain_callback(self) -> BaseCallbackHandler | None:
         """Returns the LangChain callback handler if applicable."""
         return None
+    
