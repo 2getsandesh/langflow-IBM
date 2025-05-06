@@ -40,6 +40,7 @@ class LangSmithTracer(BaseTracer):
                 run_type=self.trace_type,
                 id=self.trace_id,
             )
+            print(f"LangSmithTracer initialized with trace_id: {trace_id}, trace_name: {trace_name}")
             self._run_tree.add_event({"name": "Start", "time": datetime.now(timezone.utc).isoformat()})
             self._children: dict[str, RunTree] = {}
         except Exception:  # noqa: BLE001
@@ -72,6 +73,7 @@ class LangSmithTracer(BaseTracer):
         metadata: dict[str, Any] | None = None,
         vertex: Vertex | None = None,  # noqa: ARG002
     ) -> None:
+        print(f"Adding trace: {trace_name} with type: {trace_type}")
         if not self._ready or not self._run_tree:
             return
         processed_inputs = {}
