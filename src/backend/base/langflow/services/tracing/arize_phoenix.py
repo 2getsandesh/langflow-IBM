@@ -21,48 +21,6 @@ from langflow.schema.data import Data
 from langflow.schema.message import Message
 from langflow.services.tracing.base import BaseTracer
 
-# from opentelemetry import trace
-# from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-# from opentelemetry.sdk.trace import TracerProvider
-# from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-# endpoint = "https://otlp-magenta-saas.instana.rocks:4317"
-# tracer_provider = TracerProvider()
-# print("tracer provider creation initiated")
-# tracer_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(endpoint=endpoint, headers="x-instana-key=n399JZhWQtuwd6pB42oukg")))
-# print("tracer provider added")
-# trace.set_tracer_provider(tracer_provider)
-# print("tracer provider set")
-
-
-
-# from traceloop.sdk import Traceloop
-
-# Traceloop.init(
-#     api_key="<api key>",
-#     disable_batch=True,
-#     environment="dev",  # Optional: dev/staging/prod
-#     app_name="LangFlow",
-#     tracing=True  # Enable LangChain tracing
-# )
-
-
-
-# Import open-telemetry dependencies
-# from arize.otel import register
-
-# # Setup OTel via our convenience function
-# tracer_provider = register(
-#     arize_space_id = "U3BhY2U6MTkyMTY6STNsMg==",
-#     arize_api_key = "473b12647ab0a2c7a50",
-#     project_name = "Langflow-May",
-# )
-
-# # Import the automatic instrumentor from OpenInference
-# from openinference.instrumentation.langchain import LangChainInstrumentor
-
-# # Finish automatic instrumentation
-# LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
-
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from uuid import UUID
@@ -113,10 +71,6 @@ class ArizePhoenixTracer(BaseTracer):
             self.root_span.set_attribute("langflow.project.name", self.project_name)
             self.root_span.set_attribute("langflow.flow.name", self.flow_name)
             self.root_span.set_attribute("langflow.flow.id", self.flow_id)
-            print("ARIZE PHOENIX INIT METHOD")
-            print(f"TRACE ID: {trace_id}, TRACE NAME: {trace_name}, TRACE TYPE: {trace_type}")
-            print("ROOT SPAN ID: " + str(self.root_span.get_span_context().span_id))
-            print("ROOT SPAN TRACE ID: " + str(self.root_span.get_span_context().trace_id))
 
             with use_span(self.root_span, end_on_exit=False):
                 self.propagator.inject(carrier=self.carrier)
@@ -134,75 +88,96 @@ class ArizePhoenixTracer(BaseTracer):
 
     def setup_arize_phoenix(self) -> bool:
         """Configures Arize/Phoenix specific environment variables and registers the tracer provider."""
-        arize_phoenix_batch = os.getenv("ARIZE_PHOENIX_BATCH", "False").lower() in {
-            "true",
-            "t",
-            "yes",
-            "y",
-            "1",
-        }
+        # arize_phoenix_batch = os.getenv("ARIZE_PHOENIX_BATCH", "False").lower() in {
+        #     "true",
+        #     "t",
+        #     "yes",
+        #     "y",
+        #     "1",
+        # }
 
-        # Arize Config
-        arize_api_key = os.getenv("ARIZE_API_KEY", None)
-        arize_space_id = os.getenv("ARIZE_SPACE_ID", None)
-        arize_collector_endpoint = os.getenv("ARIZE_COLLECTOR_ENDPOINT", "https://otlp.arize.com")
-        enable_arize_tracing = bool(arize_api_key and arize_space_id)
-        arize_endpoint = f"{arize_collector_endpoint}/v1"
-        arize_headers = {
-            "api_key": arize_api_key,
-            "space_id": arize_space_id,
-            "authorization": f"Bearer {arize_api_key}",
-        }
+        # # Arize Config
+        # arize_api_key = os.getenv("ARIZE_API_KEY", None)
+        # arize_space_id = os.getenv("ARIZE_SPACE_ID", None)
+        # arize_collector_endpoint = os.getenv("ARIZE_COLLECTOR_ENDPOINT", "https://otlp.arize.com")
+        # enable_arize_tracing = bool(arize_api_key and arize_space_id)
+        # arize_endpoint = f"{arize_collector_endpoint}/v1"
+        # arize_headers = {
+        #     "api_key": arize_api_key,
+        #     "space_id": arize_space_id,
+        #     "authorization": f"Bearer {arize_api_key}",
+        # }
 
+        # # Phoenix Config
+        # phoenix_api_key = os.getenv("PHOENIX_API_KEY", None)
+        # phoenix_collector_endpoint = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "https://app.phoenix.arize.com")
+        # enable_phoenix_tracing = bool(phoenix_api_key)
+        # phoenix_endpoint = f"{phoenix_collector_endpoint}/v1/traces"
+        # phoenix_headers = {
+        #     "api_key": phoenix_api_key,
+        #     "authorization": f"Bearer {phoenix_api_key}",
+        # }
 
+        # if not (enable_arize_tracing or enable_phoenix_tracing):
+        #     return False
 
-        # Phoenix Config
-        phoenix_api_key = os.getenv("PHOENIX_API_KEY", None)
-        phoenix_collector_endpoint = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "https://app.phoenix.arize.com")
-        enable_phoenix_tracing = bool(phoenix_api_key)
-        phoenix_endpoint = f"{phoenix_collector_endpoint}/v1/traces"
-        phoenix_headers = {
-            "api_key": phoenix_api_key,
-            "authorization": f"Bearer {phoenix_api_key}",
-        }
+        # try:
+        #     from phoenix.otel import (
+        #         PROJECT_NAME,
+        #         BatchSpanProcessor,
+        #         GRPCSpanExporter,
+        #         HTTPSpanExporter,
+        #         Resource,
+        #         SimpleSpanProcessor,
+        #         TracerProvider,
+        #     )
 
-        if not (enable_arize_tracing or enable_phoenix_tracing):
-            return False
+        #     name_without_space = self.flow_name.replace(" ", "-")
+        #     project_name = self.project_name if name_without_space == "None" else name_without_space
+        #     attributes = {PROJECT_NAME: project_name, "model_id": project_name}
+        #     resource = Resource.create(attributes=attributes)
+        #     tracer_provider = TracerProvider(resource=resource, verbose=False)
+        #     span_processor = BatchSpanProcessor if arize_phoenix_batch else SimpleSpanProcessor
 
+        #     if enable_arize_tracing:
+        #         tracer_provider.add_span_processor(
+        #             span_processor=span_processor(
+        #                 span_exporter=GRPCSpanExporter(endpoint=arize_endpoint, headers=arize_headers),
+        #             )
+        #         )
+
+        #     if enable_phoenix_tracing:
+        #         tracer_provider.add_span_processor(
+        #             span_processor=span_processor(
+        #                 span_exporter=HTTPSpanExporter(
+        #                     endpoint=phoenix_endpoint,
+        #                     headers=phoenix_headers,
+        #                 ),
+        #             )
+        #         )
         try:
-            from phoenix.otel import (
-                PROJECT_NAME,
-                BatchSpanProcessor,
-                GRPCSpanExporter,
-                HTTPSpanExporter,
-                Resource,
-                SimpleSpanProcessor,
-                TracerProvider,
-            )
-
-            name_without_space = self.flow_name.replace(" ", "-")
-            project_name = self.project_name if name_without_space == "None" else name_without_space
-            attributes = {PROJECT_NAME: project_name, "model_id": project_name}
+            from opentelemetry.sdk.resources import Resource
+            from opentelemetry.sdk.trace import TracerProvider
+            from opentelemetry.sdk.trace.export import BatchSpanProcessor
+            from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+                OTLPSpanExporter as _HTTPSpanExporter,)
+            
+            
+            traceloop_api_key = ""
+            traceloop_endpoint = "https://api.traceloop.com/v1/traces"
+            traceloop_headers = {
+                "Authorization": f"Bearer {traceloop_api_key}",
+            }
+            project_name = "abc"
+            attributes = {"p_name": project_name, "model_id": project_name}
             resource = Resource.create(attributes=attributes)
-            tracer_provider = TracerProvider(resource=resource, verbose=False)
-            span_processor = BatchSpanProcessor if arize_phoenix_batch else SimpleSpanProcessor
 
-            if enable_arize_tracing:
-                tracer_provider.add_span_processor(
-                    span_processor=span_processor(
-                        span_exporter=GRPCSpanExporter(endpoint=arize_endpoint, headers=arize_headers),
-                    )
+            tracer_provider = TracerProvider(resource=resource)
+            tracer_provider.add_span_processor(
+                BatchSpanProcessor(
+                    _HTTPSpanExporter(endpoint=traceloop_endpoint, headers=traceloop_headers)
                 )
-
-            if enable_phoenix_tracing:
-                tracer_provider.add_span_processor(
-                    span_processor=span_processor(
-                        span_exporter=HTTPSpanExporter(
-                            endpoint=phoenix_endpoint,
-                            headers=phoenix_headers,
-                        ),
-                    )
-                )
+            )
 
             self.tracer_provider = tracer_provider
         except ImportError:
@@ -212,9 +187,9 @@ class ArizePhoenixTracer(BaseTracer):
             return False
 
         try:
-            from openinference.instrumentation.langchain import LangChainInstrumentor
+            from opentelemetry.instrumentation.langchain import LangchainInstrumentor
 
-            LangChainInstrumentor().instrument(tracer_provider=self.tracer_provider, skip_dep_check=True)
+            LangchainInstrumentor().instrument(tracer_provider=self.tracer_provider, skip_dep_check=True)
         except ImportError:
             logger.exception(
                 "Could not import LangChainInstrumentor."
@@ -235,9 +210,8 @@ class ArizePhoenixTracer(BaseTracer):
         vertex: Vertex | None = None,
     ) -> None:
         """Adds a trace span, attaching inputs and metadata as attributes."""
-
-        print("ARIZE PHOENIX ADD TRACE METHOD")
-        print(trace_id + " " + trace_name)
+        print("trace_id",trace_id)
+        print("TTTT",trace_name)
         if not self._ready:
             return
 
@@ -247,8 +221,6 @@ class ArizePhoenixTracer(BaseTracer):
             context=span_context,
             start_time=self._get_current_timestamp(),
         )
-        print("ARIZE PHOENIX ADD TRACE METHOD")
-        print(trace_id + " " + trace_name)
 
         if trace_type == "prompt":
             child_span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, "chain")
@@ -272,8 +244,6 @@ class ArizePhoenixTracer(BaseTracer):
             self.chat_output_value = processed_inputs["input_value"]
 
         self.child_spans[trace_id] = child_span
-        print("CHAT INPUT VALUE + " + self.chat_input_value)
-        print("CHAT OUTPUT VALUE + " + self.chat_output_value)
 
     @override
     def end_trace(
@@ -291,7 +261,6 @@ class ArizePhoenixTracer(BaseTracer):
         child_span = self.child_spans[trace_id]
 
         processed_outputs = self._convert_to_arize_phoenix_types(outputs) if outputs else {}
-        print("PROCESSED OUTPUTS " + str(processed_outputs))
         if processed_outputs:
             child_span.set_attribute(SpanAttributes.OUTPUT_VALUE, self._safe_json_dumps(processed_outputs))
             child_span.set_attribute(SpanAttributes.OUTPUT_MIME_TYPE, OpenInferenceMimeTypeValues.JSON.value)
@@ -301,8 +270,7 @@ class ArizePhoenixTracer(BaseTracer):
             self._convert_to_arize_phoenix_types({log.get("name"): log for log in logs_dicts}) if logs else {}
         )
         if processed_logs:
-            for key, value in processed_logs.items():
-                child_span.set_attribute(f"logs.{key}", value)
+            child_span.set_attribute("logs", self._safe_json_dumps(processed_logs))
 
         self._set_span_status(child_span, error)
         child_span.end(end_time=self._get_current_timestamp())
@@ -425,4 +393,3 @@ class ArizePhoenixTracer(BaseTracer):
     def get_langchain_callback(self) -> BaseCallbackHandler | None:
         """Returns the LangChain callback handler if applicable."""
         return None
-    

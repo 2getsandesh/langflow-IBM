@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any
 from loguru import logger
 from typing_extensions import override
 
+from langflow.serialization.serialization import serialize
 from langflow.services.tracing.base import BaseTracer
-
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -19,8 +19,6 @@ if TYPE_CHECKING:
 
     from langflow.graph.vertex.base import Vertex
     from langflow.services.tracing.schema import Log
-
-#Traceloop.init(app_name="LANGFLOW_TRACES")
 
 
 class LangFuseTracer(BaseTracer):
@@ -44,9 +42,6 @@ class LangFuseTracer(BaseTracer):
         self.flow_id = trace_name.split(" - ")[-1]
         self.spans: dict = OrderedDict()  # spans that are not ended
 
-        print(f"LangFuseTracer initialized with trace_id: {trace_id}, trace_name: {trace_name}, trace_type: {trace_type}")
-
-
         config = self._get_config()
         self._ready: bool = self.setup_langfuse(config) if config else False
 
@@ -56,7 +51,6 @@ class LangFuseTracer(BaseTracer):
 
     def setup_langfuse(self, config) -> bool:
         try:
-
             from langfuse import Langfuse
 
             self._client = Langfuse(**config)
@@ -97,9 +91,6 @@ class LangFuseTracer(BaseTracer):
         start_time = datetime.now(tz=timezone.utc)
         if not self._ready:
             return
-        
-        print("LANGFUSE ADD TRACE METHOD")
-        print(f"TRACE ID: {trace_id}, TRACE NAME: {trace_name}, TRACE TYPE: {trace_type}, INPUTS: {inputs}")
 
         metadata_: dict = {"from_langflow_component": True, "component_id": trace_id}
         metadata_ |= {"trace_type": trace_type} if trace_type else {}
@@ -118,7 +109,7 @@ class LangFuseTracer(BaseTracer):
         #     last_span = next(reversed(self.spans))
         #     span = self.spans[last_span].span(**content_span)
         # else:
-        span = self.trace.span(**content_span)
+        span = self.trace.span(**serialize(content_span))
 
         self.spans[trace_id] = span
 
@@ -141,7 +132,7 @@ class LangFuseTracer(BaseTracer):
             output |= outputs or {}
             output |= {"error": str(error)} if error else {}
             output |= {"logs": list(logs)} if logs else {}
-            content = {"output": output, "end_time": end_time}
+            content = serialize({"output": output, "end_time": end_time})
             span.update(**content)
 
     @override
@@ -159,7 +150,7 @@ class LangFuseTracer(BaseTracer):
             "output": outputs,
             "metadata": metadata,
         }
-        self.trace.update(**content_update)
+        self.trace.update(**serialize(content_update))
         self._client.flush()
 
     def get_langchain_callback(self) -> BaseCallbackHandler | None:

@@ -10,6 +10,7 @@ from loguru import logger
 from typing_extensions import override
 
 from langflow.schema.data import Data
+from langflow.serialization.serialization import serialize
 from langflow.services.tracing.base import BaseTracer
 
 if TYPE_CHECKING:
@@ -40,7 +41,6 @@ class LangSmithTracer(BaseTracer):
                 run_type=self.trace_type,
                 id=self.trace_id,
             )
-            print(f"LangSmithTracer initialized with trace_id: {trace_id}, trace_name: {trace_name}")
             self._run_tree.add_event({"name": "Start", "time": datetime.now(timezone.utc).isoformat()})
             self._children: dict[str, RunTree] = {}
         except Exception:  # noqa: BLE001
@@ -73,7 +73,6 @@ class LangSmithTracer(BaseTracer):
         metadata: dict[str, Any] | None = None,
         vertex: Vertex | None = None,  # noqa: ARG002
     ) -> None:
-        print(f"Adding trace: {trace_name} with type: {trace_type}")
         if not self._ready or not self._run_tree:
             return
         processed_inputs = {}
@@ -160,10 +159,10 @@ class LangSmithTracer(BaseTracer):
     ) -> None:
         if not self._ready or not self._run_tree:
             return
-        self._run_tree.add_metadata({"inputs": inputs})
+        self._run_tree.add_metadata({"inputs": serialize(inputs)})
         if metadata:
-            self._run_tree.add_metadata(metadata)
-        self._run_tree.end(outputs=outputs, error=self._error_to_string(error))
+            self._run_tree.add_metadata(serialize(metadata))
+        self._run_tree.end(outputs=serialize(outputs), error=self._error_to_string(error))
         self._run_tree.post()
         self._run_link = self._run_tree.get_url()
 

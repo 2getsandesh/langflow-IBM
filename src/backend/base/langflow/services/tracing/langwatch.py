@@ -50,9 +50,6 @@ class LangWatchTracer(BaseTracer):
                 name=name_without_id,
                 type="workflow",
             )
-
-            print(f"LANGWATCH INITIALISED Trace ID: {self.trace_id}, Flow ID: {self.flow_id}, Project Name: {self.project_name}")
-
         except Exception:  # noqa: BLE001
             logger.debug("Error setting up LangWatch tracer")
             self._ready = False
@@ -68,7 +65,6 @@ class LangWatchTracer(BaseTracer):
             import langwatch
 
             self._client = langwatch
-            print("LangWatch is enabled.")
         except ImportError:
             logger.exception("Could not import langwatch. Please install it with `pip install langwatch`.")
             return False
@@ -109,7 +105,6 @@ class LangWatchTracer(BaseTracer):
         )
         self.trace.set_current_span(span)
         self.spans[trace_id] = span
-        print(f"LANGWATCH ADD TRACE Span ID: {trace_id}, Flow ID: {self.flow_id}, Project Name: {self.project_name}")
 
     @override
     def end_trace(
