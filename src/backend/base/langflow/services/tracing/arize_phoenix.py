@@ -156,28 +156,56 @@ class ArizePhoenixTracer(BaseTracer):
         #             )
         #         )
         try:
+            #Code for Traceloop Inrumentation
+            # from opentelemetry.sdk.resources import Resource
+            # from opentelemetry.sdk.trace import TracerProvider
+            # from opentelemetry.sdk.trace.export import BatchSpanProcessor
+            # from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            #     OTLPSpanExporter as _HTTPSpanExporter,)
+            
+            # traceloop_api_key = ""
+            # traceloop_endpoint = "https://api.traceloop.com/v1/traces"
+            # traceloop_headers = {
+            #     "Authorization": f"Bearer {traceloop_api_key}",
+            # }
+
+            # project_name = "abc"
+            # attributes = {"p_name": project_name, "model_id": project_name}
+            # resource = Resource.create(attributes=attributes)
+
+            # tracer_provider = TracerProvider(resource=resource)
+            # tracer_provider.add_span_processor(
+            #     BatchSpanProcessor(
+            #         _HTTPSpanExporter(endpoint=traceloop_endpoint, headers=traceloop_headers)
+            #     )
+            # )
+
+
+            #Code for Instana Instrumentation
             from opentelemetry.sdk.resources import Resource
             from opentelemetry.sdk.trace import TracerProvider
-            from opentelemetry.sdk.trace.export import BatchSpanProcessor
-            from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
-                OTLPSpanExporter as _HTTPSpanExporter,)
+            from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+            OTLPSpanExporter as _GRPCSpanExporter,
+                )
             
-            
-            traceloop_api_key = ""
-            traceloop_endpoint = "https://api.traceloop.com/v1/traces"
-            traceloop_headers = {
-                "Authorization": f"Bearer {traceloop_api_key}",
-            }
+            traceloop_baseurl = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+            traceloop_headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
+
             project_name = "abc"
             attributes = {"p_name": project_name, "model_id": project_name}
             resource = Resource.create(attributes=attributes)
 
             tracer_provider = TracerProvider(resource=resource)
             tracer_provider.add_span_processor(
-                BatchSpanProcessor(
-                    _HTTPSpanExporter(endpoint=traceloop_endpoint, headers=traceloop_headers)
+                SimpleSpanProcessor(
+                    _GRPCSpanExporter(endpoint=traceloop_baseurl, headers=traceloop_headers)
                 )
             )
+
+
+
+
 
             self.tracer_provider = tracer_provider
         except ImportError:
