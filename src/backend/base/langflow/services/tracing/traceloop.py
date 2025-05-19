@@ -57,8 +57,6 @@ class TraceloopTracer(BaseTracer):
             self._ready = self.setup_traceloop()
             if not self._ready:
                 return
-            
-            print("Traceloop tracer is ready")
 
             self.tracer = self.tracer_provider.get_tracer(__name__)
             self.propagator = TraceContextTextMapPropagator()
@@ -160,8 +158,6 @@ class TraceloopTracer(BaseTracer):
         vertex: Vertex | None = None,
     ) -> None:
         """Adds a trace span, attaching inputs and metadata as attributes."""
-        print("TRACE ID",trace_id)
-        print("TRACE NAME",trace_name)
         if not self._ready:
             return
 
