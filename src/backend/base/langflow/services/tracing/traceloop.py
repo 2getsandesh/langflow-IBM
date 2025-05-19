@@ -177,12 +177,12 @@ class TraceloopTracer(BaseTracer):
         else:
             child_span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, trace_type)
 
-        processed_inputs = self._convert_to_arize_phoenix_types(inputs) if inputs else {}
+        processed_inputs = self._convert_to_traceloop_types(inputs) if inputs else {}
         if processed_inputs:
             child_span.set_attribute(SpanAttributes.INPUT_VALUE, self._safe_json_dumps(processed_inputs))
             child_span.set_attribute(SpanAttributes.INPUT_MIME_TYPE, OpenInferenceMimeTypeValues.JSON.value)
 
-        processed_metadata = self._convert_to_arize_phoenix_types(metadata) if metadata else {}
+        processed_metadata = self._convert_to_traceloop_types(metadata) if metadata else {}
         if processed_metadata:
             for key, value in processed_metadata.items():
                 child_span.set_attribute(f"{SpanAttributes.METADATA}.{key}", value)
@@ -210,14 +210,14 @@ class TraceloopTracer(BaseTracer):
 
         child_span = self.child_spans[trace_id]
 
-        processed_outputs = self._convert_to_arize_phoenix_types(outputs) if outputs else {}
+        processed_outputs = self._convert_to_traceloop_types(outputs) if outputs else {}
         if processed_outputs:
             child_span.set_attribute(SpanAttributes.OUTPUT_VALUE, self._safe_json_dumps(processed_outputs))
             child_span.set_attribute(SpanAttributes.OUTPUT_MIME_TYPE, OpenInferenceMimeTypeValues.JSON.value)
 
         logs_dicts = [log if isinstance(log, dict) else log.model_dump() for log in logs]
         processed_logs = (
-            self._convert_to_arize_phoenix_types({log.get("name"): log for log in logs_dicts}) if logs else {}
+            self._convert_to_traceloop_types({log.get("name"): log for log in logs_dicts}) if logs else {}
         )
         if processed_logs:
             child_span.set_attribute("logs", self._safe_json_dumps(processed_logs))
@@ -244,7 +244,7 @@ class TraceloopTracer(BaseTracer):
             self.root_span.set_attribute(SpanAttributes.OUTPUT_VALUE, self.chat_output_value)
             self.root_span.set_attribute(SpanAttributes.OUTPUT_MIME_TYPE, OpenInferenceMimeTypeValues.TEXT.value)
 
-            processed_metadata = self._convert_to_arize_phoenix_types(metadata) if metadata else {}
+            processed_metadata = self._convert_to_traceloop_types(metadata) if metadata else {}
             if processed_metadata:
                 for key, value in processed_metadata.items():
                     self.root_span.set_attribute(f"{SpanAttributes.METADATA}.{key}", value)
@@ -262,19 +262,19 @@ class TraceloopTracer(BaseTracer):
                 "Please install it with `pip install openinference-instrumentation-langchain`."
             )
 
-    def _convert_to_arize_phoenix_types(self, io_dict: dict[str | Any, Any]) -> dict[str, Any]:
-        """Converts data types to Arize/Phoenix compatible formats."""
+    def _convert_to_traceloop_types(self, io_dict: dict[str | Any, Any]) -> dict[str, Any]:
+        """Converts data types to Traceloop compatible formats."""
         return {
-            str(key): self._convert_to_arize_phoenix_type(value) for key, value in io_dict.items() if key is not None
+            str(key): self._convert_to_traceloop_type(value) for key, value in io_dict.items() if key is not None
         }
 
-    def _convert_to_arize_phoenix_type(self, value):
-        """Recursively converts a value to a Arize/Phoenix compatible type."""
+    def _convert_to_traceloop_type(self, value):
+        """Recursively converts a value to a Traceloop compatible type."""
         if isinstance(value, dict):
-            value = {key: self._convert_to_arize_phoenix_type(val) for key, val in value.items()}
+            value = {key: self._convert_to_traceloop_type(val) for key, val in value.items()}
 
         elif isinstance(value, list):
-            value = [self._convert_to_arize_phoenix_type(v) for v in value]
+            value = [self._convert_to_traceloop_type(v) for v in value]
 
         elif isinstance(value, Message):
             value = value.text
