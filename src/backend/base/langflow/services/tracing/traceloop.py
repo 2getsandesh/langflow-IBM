@@ -57,8 +57,6 @@ class TraceloopTracer(BaseTracer):
             self._ready = self.setup_traceloop()
             if not self._ready:
                 return
-            
-            print("Traceloop tracer is ready")
 
             self.tracer = self.tracer_provider.get_tracer(__name__)
             self.propagator = TraceContextTextMapPropagator()
@@ -89,46 +87,56 @@ class TraceloopTracer(BaseTracer):
         return self._ready
 
     def setup_traceloop(self) -> bool:
-        """Configures Traceloop specific environment variables and registers the tracer provider."""
         try:
-            #Code for Traceloop Inrumentation
+            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+                OTLPSpanExporter as _GRPCSpanExporter,
+            )
             from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
                 OTLPSpanExporter as _HTTPSpanExporter,
             )
             from opentelemetry.sdk.resources import Resource
             from opentelemetry.sdk.trace import TracerProvider
-            from opentelemetry.sdk.trace.export import BatchSpanProcessor
+            from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor
 
-            traceloop_api_key = os.getenv("TRACELOOP_API_KEY")
-            traceloop_endpoint = "https://api.traceloop.com/v1/traces"
-            traceloop_headers = {
-                "Authorization": f"Bearer {traceloop_api_key}",
-            }
-
-            project_name = "xyz"
+            project_name = "LANGFLOW"
             attributes = {"p_name": project_name, "model_id": project_name}
             resource = Resource.create(attributes=attributes)
-
             tracer_provider = TracerProvider(resource=resource)
-            tracer_provider.add_span_processor(
-                BatchSpanProcessor(
-                    _HTTPSpanExporter(endpoint=traceloop_endpoint, headers=traceloop_headers)
+
+            # Traceloop
+            traceloop_api_key = os.getenv("TRACELOOP_API_KEY")
+            if traceloop_api_key:
+                traceloop_endpoint = "https://api.traceloop.com/v1/traces"
+                traceloop_headers = {
+                    "Authorization": f"Bearer {traceloop_api_key}",
+                }
+                tracer_provider.add_span_processor(
+                    BatchSpanProcessor(
+                        _HTTPSpanExporter(endpoint=traceloop_endpoint, headers=traceloop_headers)
+                    )
                 )
-            )
 
-
+            # Instana
+            instana_baseurl = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+            instana_headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
+            if instana_baseurl and instana_headers:
+                tracer_provider.add_span_processor(
+                    SimpleSpanProcessor(
+                        _GRPCSpanExporter(endpoint=instana_baseurl, headers=instana_headers)
+                    )
+                )
 
             self.tracer_provider = tracer_provider
+
         except ImportError:
             logger.exception(
-                "Failed to set up Traceloop OpenTelemetry instrumentation."
-                "Install them using `pip install opentelemetry-sdk opentelemetry-exporter-otlp"
-                    )
+                "Failed to set up Traceloop/Instana OpenTelemetry instrumentation."
+                "Install them using `pip install opentelemetry-sdk opentelemetry-exporter-otlp`."
+            )
             return False
 
         try:
             from opentelemetry.instrumentation.langchain import LangchainInstrumentor
-
             LangchainInstrumentor().instrument(tracer_provider=self.tracer_provider, skip_dep_check=True)
         except ImportError:
             logger.exception(
@@ -150,8 +158,6 @@ class TraceloopTracer(BaseTracer):
         vertex: Vertex | None = None,
     ) -> None:
         """Adds a trace span, attaching inputs and metadata as attributes."""
-        print("TRACE ID",trace_id)
-        print("TRACE NAME",trace_name)
         if not self._ready:
             return
 
@@ -167,12 +173,12 @@ class TraceloopTracer(BaseTracer):
         else:
             child_span.set_attribute(SpanAttributes.OPENINFERENCE_SPAN_KIND, trace_type)
 
-        processed_inputs = self._convert_to_arize_phoenix_types(inputs) if inputs else {}
+        processed_inputs = self._convert_to_traceloop_types(inputs) if inputs else {}
         if processed_inputs:
             child_span.set_attribute(SpanAttributes.INPUT_VALUE, self._safe_json_dumps(processed_inputs))
             child_span.set_attribute(SpanAttributes.INPUT_MIME_TYPE, OpenInferenceMimeTypeValues.JSON.value)
 
-        processed_metadata = self._convert_to_arize_phoenix_types(metadata) if metadata else {}
+        processed_metadata = self._convert_to_traceloop_types(metadata) if metadata else {}
         if processed_metadata:
             for key, value in processed_metadata.items():
                 child_span.set_attribute(f"{SpanAttributes.METADATA}.{key}", value)
@@ -200,14 +206,14 @@ class TraceloopTracer(BaseTracer):
 
         child_span = self.child_spans[trace_id]
 
-        processed_outputs = self._convert_to_arize_phoenix_types(outputs) if outputs else {}
+        processed_outputs = self._convert_to_traceloop_types(outputs) if outputs else {}
         if processed_outputs:
             child_span.set_attribute(SpanAttributes.OUTPUT_VALUE, self._safe_json_dumps(processed_outputs))
             child_span.set_attribute(SpanAttributes.OUTPUT_MIME_TYPE, OpenInferenceMimeTypeValues.JSON.value)
 
         logs_dicts = [log if isinstance(log, dict) else log.model_dump() for log in logs]
         processed_logs = (
-            self._convert_to_arize_phoenix_types({log.get("name"): log for log in logs_dicts}) if logs else {}
+            self._convert_to_traceloop_types({log.get("name"): log for log in logs_dicts}) if logs else {}
         )
         if processed_logs:
             child_span.set_attribute("logs", self._safe_json_dumps(processed_logs))
@@ -234,7 +240,7 @@ class TraceloopTracer(BaseTracer):
             self.root_span.set_attribute(SpanAttributes.OUTPUT_VALUE, self.chat_output_value)
             self.root_span.set_attribute(SpanAttributes.OUTPUT_MIME_TYPE, OpenInferenceMimeTypeValues.TEXT.value)
 
-            processed_metadata = self._convert_to_arize_phoenix_types(metadata) if metadata else {}
+            processed_metadata = self._convert_to_traceloop_types(metadata) if metadata else {}
             if processed_metadata:
                 for key, value in processed_metadata.items():
                     self.root_span.set_attribute(f"{SpanAttributes.METADATA}.{key}", value)
@@ -252,19 +258,19 @@ class TraceloopTracer(BaseTracer):
                 "Please install it with `pip install openinference-instrumentation-langchain`."
             )
 
-    def _convert_to_arize_phoenix_types(self, io_dict: dict[str | Any, Any]) -> dict[str, Any]:
-        """Converts data types to Arize/Phoenix compatible formats."""
+    def _convert_to_traceloop_types(self, io_dict: dict[str | Any, Any]) -> dict[str, Any]:
+        """Converts data types to Traceloop compatible formats."""
         return {
-            str(key): self._convert_to_arize_phoenix_type(value) for key, value in io_dict.items() if key is not None
+            str(key): self._convert_to_traceloop_type(value) for key, value in io_dict.items() if key is not None
         }
 
-    def _convert_to_arize_phoenix_type(self, value):
-        """Recursively converts a value to a Arize/Phoenix compatible type."""
+    def _convert_to_traceloop_type(self, value):
+        """Recursively converts a value to a Traceloop compatible type."""
         if isinstance(value, dict):
-            value = {key: self._convert_to_arize_phoenix_type(val) for key, val in value.items()}
+            value = {key: self._convert_to_traceloop_type(val) for key, val in value.items()}
 
         elif isinstance(value, list):
-            value = [self._convert_to_arize_phoenix_type(v) for v in value]
+            value = [self._convert_to_traceloop_type(v) for v in value]
 
         elif isinstance(value, Message):
             value = value.text
