@@ -46,15 +46,15 @@ def _get_arize_phoenix_tracer():
 
     return ArizePhoenixTracer
 
-def _get_traceloop_tracer():
-    from langflow.services.tracing.traceloop import TraceloopTracer
-
-    return TraceloopTracer
-
 def _get_opik_tracer():
     from langflow.services.tracing.opik import OpikTracer
 
     return OpikTracer
+
+def _get_traceloop_tracer():
+    from langflow.services.tracing.traceloop import TraceloopTracer
+
+    return TraceloopTracer
 
 
 trace_context_var: ContextVar[TraceContext | None] = ContextVar("trace_context", default=None)
@@ -186,15 +186,6 @@ class TracingService(Service):
             trace_id=trace_context.run_id,
         )
 
-    def _initialize_traceloop_tracer(self, trace_context: TraceContext) -> None:
-        traceloop_tracer = _get_traceloop_tracer()
-        trace_context.tracers["traceloop"] = traceloop_tracer(
-            trace_name=trace_context.run_name,
-            trace_type="chain",
-            project_name=trace_context.project_name,
-            trace_id=trace_context.run_id,
-        )
-
     def _initialize_opik_tracer(self, trace_context: TraceContext) -> None:
         opik_tracer = _get_opik_tracer()
         trace_context.tracers["opik"] = opik_tracer(
@@ -204,6 +195,15 @@ class TracingService(Service):
             trace_id=trace_context.run_id,
             user_id=trace_context.user_id,
             session_id=trace_context.session_id,
+        )
+
+    def _initialize_traceloop_tracer(self, trace_context: TraceContext) -> None:
+        traceloop_tracer = _get_traceloop_tracer()
+        trace_context.tracers["traceloop"] = traceloop_tracer(
+            trace_name=trace_context.run_name,
+            trace_type="chain",
+            project_name=trace_context.project_name,
+            trace_id=trace_context.run_id,
         )
 
     async def start_tracers(
@@ -231,8 +231,8 @@ class TracingService(Service):
             self._initialize_langwatch_tracer(trace_context)
             self._initialize_langfuse_tracer(trace_context)
             self._initialize_arize_phoenix_tracer(trace_context)
-            self._initialize_traceloop_tracer(trace_context)
             self._initialize_opik_tracer(trace_context)
+            self._initialize_traceloop_tracer(trace_context)
         except Exception as e:  # noqa: BLE001
             logger.debug(f"Error initializing tracers: {e}")
 
