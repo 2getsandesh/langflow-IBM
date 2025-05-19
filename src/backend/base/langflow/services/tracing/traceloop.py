@@ -89,46 +89,56 @@ class TraceloopTracer(BaseTracer):
         return self._ready
 
     def setup_traceloop(self) -> bool:
-        """Configures Traceloop specific environment variables and registers the tracer provider."""
         try:
-            #Code for Traceloop Inrumentation
+            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+                OTLPSpanExporter as _GRPCSpanExporter,
+            )
             from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
                 OTLPSpanExporter as _HTTPSpanExporter,
             )
             from opentelemetry.sdk.resources import Resource
             from opentelemetry.sdk.trace import TracerProvider
-            from opentelemetry.sdk.trace.export import BatchSpanProcessor
+            from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor
 
-            traceloop_api_key = os.getenv("TRACELOOP_API_KEY")
-            traceloop_endpoint = "https://api.traceloop.com/v1/traces"
-            traceloop_headers = {
-                "Authorization": f"Bearer {traceloop_api_key}",
-            }
-
-            project_name = "xyz"
+            project_name = "LANGFLOW"
             attributes = {"p_name": project_name, "model_id": project_name}
             resource = Resource.create(attributes=attributes)
-
             tracer_provider = TracerProvider(resource=resource)
-            tracer_provider.add_span_processor(
-                BatchSpanProcessor(
-                    _HTTPSpanExporter(endpoint=traceloop_endpoint, headers=traceloop_headers)
+
+            # Traceloop
+            traceloop_api_key = os.getenv("TRACELOOP_API_KEY")
+            if traceloop_api_key:
+                traceloop_endpoint = "https://api.traceloop.com/v1/traces"
+                traceloop_headers = {
+                    "Authorization": f"Bearer {traceloop_api_key}",
+                }
+                tracer_provider.add_span_processor(
+                    BatchSpanProcessor(
+                        _HTTPSpanExporter(endpoint=traceloop_endpoint, headers=traceloop_headers)
+                    )
                 )
-            )
 
-
+            # Instana
+            instana_baseurl = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+            instana_headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
+            if instana_baseurl and instana_headers:
+                tracer_provider.add_span_processor(
+                    SimpleSpanProcessor(
+                        _GRPCSpanExporter(endpoint=instana_baseurl, headers=instana_headers)
+                    )
+                )
 
             self.tracer_provider = tracer_provider
+
         except ImportError:
             logger.exception(
-                "Failed to set up Traceloop OpenTelemetry instrumentation."
-                "Install them using `pip install opentelemetry-sdk opentelemetry-exporter-otlp"
-                    )
+                "Failed to set up Traceloop/Instana OpenTelemetry instrumentation."
+                "Install them using `pip install opentelemetry-sdk opentelemetry-exporter-otlp`."
+            )
             return False
 
         try:
             from opentelemetry.instrumentation.langchain import LangchainInstrumentor
-
             LangchainInstrumentor().instrument(tracer_provider=self.tracer_provider, skip_dep_check=True)
         except ImportError:
             logger.exception(
