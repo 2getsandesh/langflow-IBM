@@ -46,10 +46,12 @@ def _get_arize_phoenix_tracer():
 
     return ArizePhoenixTracer
 
+
 def _get_opik_tracer():
     from langflow.services.tracing.opik import OpikTracer
 
     return OpikTracer
+
 
 def _get_traceloop_tracer():
     from langflow.services.tracing.traceloop import TraceloopTracer

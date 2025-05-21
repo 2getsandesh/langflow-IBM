@@ -111,9 +111,7 @@ class TraceloopTracer(BaseTracer):
                     "Authorization": f"Bearer {traceloop_api_key}",
                 }
                 tracer_provider.add_span_processor(
-                    BatchSpanProcessor(
-                        _HTTPSpanExporter(endpoint=traceloop_endpoint, headers=traceloop_headers)
-                    )
+                    BatchSpanProcessor(_HTTPSpanExporter(endpoint=traceloop_endpoint, headers=traceloop_headers))
                 )
 
             # Instana
@@ -121,9 +119,7 @@ class TraceloopTracer(BaseTracer):
             instana_headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
             if instana_baseurl and instana_headers:
                 tracer_provider.add_span_processor(
-                    SimpleSpanProcessor(
-                        _GRPCSpanExporter(endpoint=instana_baseurl, headers=instana_headers)
-                    )
+                    SimpleSpanProcessor(_GRPCSpanExporter(endpoint=instana_baseurl, headers=instana_headers))
                 )
 
             self.tracer_provider = tracer_provider
@@ -137,6 +133,7 @@ class TraceloopTracer(BaseTracer):
 
         try:
             from opentelemetry.instrumentation.langchain import LangchainInstrumentor
+
             LangchainInstrumentor().instrument(tracer_provider=self.tracer_provider, skip_dep_check=True)
         except ImportError:
             logger.exception(
@@ -212,9 +209,7 @@ class TraceloopTracer(BaseTracer):
             child_span.set_attribute(SpanAttributes.OUTPUT_MIME_TYPE, OpenInferenceMimeTypeValues.JSON.value)
 
         logs_dicts = [log if isinstance(log, dict) else log.model_dump() for log in logs]
-        processed_logs = (
-            self._convert_to_traceloop_types({log.get("name"): log for log in logs_dicts}) if logs else {}
-        )
+        processed_logs = self._convert_to_traceloop_types({log.get("name"): log for log in logs_dicts}) if logs else {}
         if processed_logs:
             child_span.set_attribute("logs", self._safe_json_dumps(processed_logs))
 
@@ -260,9 +255,7 @@ class TraceloopTracer(BaseTracer):
 
     def _convert_to_traceloop_types(self, io_dict: dict[str | Any, Any]) -> dict[str, Any]:
         """Converts data types to Traceloop compatible formats."""
-        return {
-            str(key): self._convert_to_traceloop_type(value) for key, value in io_dict.items() if key is not None
-        }
+        return {str(key): self._convert_to_traceloop_type(value) for key, value in io_dict.items() if key is not None}
 
     def _convert_to_traceloop_type(self, value):
         """Recursively converts a value to a Traceloop compatible type."""
