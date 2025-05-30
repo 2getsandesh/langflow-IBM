@@ -76,8 +76,9 @@ To verify that observability is working correctly:
    - **For Instana:**
         - Open Instana and select `Applications` from the sidebar.
         - Click on `Services` tab in the Navbar (Top).
-        - Select a suitable time frame on the top right corner (Eg: "Last 30 minutes").
-        - Then, Search for Your_Service_Name (`OTEL_SERVICE_NAME`).
+     
+        - Search for your service using the name specified in the **OTEL_SERVICE_NAME** environment variable.
+        - Click on the service name to view and analyze the associated calls.
 
 
 
