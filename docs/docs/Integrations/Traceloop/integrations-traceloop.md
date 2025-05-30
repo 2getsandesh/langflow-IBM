@@ -67,8 +67,15 @@ To verify that observability is working correctly:
    - Ask your Agent several questions to generate test traffic
 
 2. **View Traces:**
-   - **For Traceloop:** Visit [Traceloop traces dashboard](https://app.traceloop.com/) to view your traces
-   - **For Instana:** Search for "langflow" in the "Services" section of your Instana dashboard
+   - **For Traceloop:** Visit [Traceloop_Dashboard](https://app.traceloop.com/?force=true) to view your traces
+   - **For Instana:**
+        - Open Instana and select `Applications` from the sidebar.
+        - Click on `Services` tab in the Navbar (Top).
+        - Select a suitable time frame on the top right corner (Eg: "Last 30 minutes").
+        - Then, Search for Your_Service_Name (`OTEL_SERVICE_NAME`).
+
+
+
 
 ## Troubleshooting
 
@@ -79,4 +86,4 @@ If you don't see traces appearing:
 - Check that you've generated sufficient test traffic through the Playground
 
 
-For additional configuration options and advanced features, refer to the respective platform documentation for Traceloop or Instana.
+For additional configuration options and advanced features, refer to the respective platform documentation for [Traceloop](https://www.traceloop.com/docs/introduction) or [Instana](https://www.ibm.com/docs/en/instana-observability/current).
