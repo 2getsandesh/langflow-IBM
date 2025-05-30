@@ -1,3 +1,8 @@
+---
+title: Integrate Traceloop with Langflow
+slug: /integrations-traceloop
+---
+
 # Langflow Observability with Traceloop Integration Guide
 
 This guide explains how to integrate Traceloop and Instana observability platforms with your Langflow applications to monitor and analyze LLM performance.
