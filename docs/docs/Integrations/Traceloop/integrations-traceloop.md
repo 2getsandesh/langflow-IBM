@@ -46,7 +46,7 @@ Once configured, Traceloop will automatically begin monitoring and collecting te
    ```
    OTEL_EXPORTER_OTLP_ENDPOINT="<instana_endpoint>"
    OTEL_EXPORTER_OTLP_HEADERS="x-instana-key=<key>"
-   OTEL_SERVICE_NAME="langflow"
+   OTEL_SERVICE_NAME="<service-name>"
    ```
 3. Save the `.env` file
 
