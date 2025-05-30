@@ -67,7 +67,7 @@ To verify that observability is working correctly:
    - Ask your Agent several questions to generate test traffic
 
 2. **View Traces:**
-   - **For Traceloop:** Visit [https://app.traceloop.com/](https://app.traceloop.com/) to view your traces
+   - **For Traceloop:** Visit [Traceloop traces dashboard](https://app.traceloop.com/) to view your traces
    - **For Instana:** Search for "langflow" in the "Services" section of your Instana dashboard
 
 ## Troubleshooting
