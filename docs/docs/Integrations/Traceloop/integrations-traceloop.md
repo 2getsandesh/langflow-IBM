@@ -18,7 +18,8 @@ Before setting up observability, ensure you have:
 ### Option 1: Connect Langflow to Traceloop
 
 #### Step 1: Obtain Your Traceloop API Key
-1. Navigate to [https://app.traceloop.com/settings/api-keys](https://app.traceloop.com/settings/api-keys)
+1. Navigate to the [Traceloop API Key settings](https://app.traceloop.com/settings/api-keys) to generate  your API keys.
+
 2. Generate or copy your Traceloop API key
 
 #### Step 2: Configure Environment Variables
