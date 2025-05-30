@@ -331,6 +331,11 @@ module.exports = {
             },
           ],
         },
+        {
+          type: "doc",
+          id: "Integrations/Traceloop/integrations-traceloop",
+          label: "Traceloop",
+        },
       ],
     },
     {
