@@ -257,6 +257,11 @@ module.exports = {
             "Integrations/Nvidia/integrations-nvidia-system-assist",
           ],
         },
+        {
+          type: "doc",
+          id: "Integrations/Traceloop/integrations-traceloop",
+          label: "Traceloop",
+        },
       ],
     },
     {
