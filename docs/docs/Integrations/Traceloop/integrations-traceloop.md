@@ -3,7 +3,7 @@ title: Integrate Traceloop with Langflow
 slug: /integrations-traceloop
 ---
 
-# Langflow Observability with Traceloop Integration Guide
+# Langflow Observability with Traceloop and Instana Integration Guide
 
 This guide explains how to integrate Traceloop and Instana observability platforms with your Langflow applications to monitor and analyze LLM performance.
 
@@ -76,12 +76,8 @@ To verify that observability is working correctly:
    - **For Instana:**
         - Open Instana and select `Applications` from the sidebar.
         - Click on `Services` tab in the Navbar (Top).
-     
         - Search for your service using the name specified in the **OTEL_SERVICE_NAME** environment variable.
         - Click on the service name to view and analyze the associated calls.
-
-
-
 
 ## Troubleshooting
 
