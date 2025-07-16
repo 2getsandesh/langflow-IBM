@@ -79,11 +79,8 @@ class TraceloopTracer(BaseTracer):
                 start_time=self._get_current_timestamp(),
             )
 
-            self.root_span.set_attribute("session.id", self.session_id or self.flow_id)
             self.root_span.set_attribute("span.kind", otel_span_kind.name.lower())
             self.root_span.set_attribute("langflow.project.name", self.project_name)
-            self.root_span.set_attribute("langflow.flow.name", self.flow_name)
-            self.root_span.set_attribute("langflow.flow.id", self.flow_id)
 
             with use_span(self.root_span, end_on_exit=False):
                 self.propagator.inject(carrier=self.carrier)
@@ -117,6 +114,7 @@ class TraceloopTracer(BaseTracer):
             from opentelemetry.sdk.resources import Resource
             from opentelemetry.sdk.trace import TracerProvider
             from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor
+            from traceloop.sdk import Traceloop
 
             project_name = "LANGFLOW"
             resource_attributes = {
@@ -145,21 +143,13 @@ class TraceloopTracer(BaseTracer):
 
             self.tracer_provider = tracer_provider
 
+            # Initialize Traceloop SDK
+            Traceloop.init()
+
         except ImportError:
             logger.exception(
                 "Failed to set up Traceloop/Instana OpenTelemetry instrumentation."
-                "Install them using `pip install opentelemetry-sdk opentelemetry-exporter-otlp`."
-            )
-            return False
-
-        try:
-            from opentelemetry.instrumentation.langchain import LangchainInstrumentor
-
-            LangchainInstrumentor().instrument(tracer_provider=self.tracer_provider, skip_dep_check=True)
-        except ImportError:
-            logger.exception(
-                "Could not import LangChainInstrumentor."
-                "Please install it with `pip install opentelemetry-instrumentation-langchain`."
+                "Install them using `pip install opentelemetry-sdk opentelemetry-exporter-otlp traceloop-sdk`."
             )
             return False
 
@@ -187,6 +177,11 @@ class TraceloopTracer(BaseTracer):
         )
         # Keep reference so we can finish it later
         self.child_spans[trace_id] = child_span
+
+        # Copy root span attributes to child span (for Instana/exporters)
+        if hasattr(self, "root_span") and self.root_span is not None:
+            for key, value in getattr(self.root_span, "attributes", {}).items():
+                child_span.set_attribute(key, value)
 
         # Map trace types to OpenTelemetry span kinds
         if trace_type == "prompt":
@@ -267,16 +262,6 @@ class TraceloopTracer(BaseTracer):
             self._set_span_status(self.root_span, error)
             self.root_span.end()
 
-        try:
-            from opentelemetry.instrumentation.langchain import LangchainInstrumentor
-
-            LangchainInstrumentor().uninstrument(tracer_provider=self.tracer_provider, skip_dep_check=True)
-        except ImportError:
-            logger.exception(
-                "Could not import LangchainInstrumentor."
-                "Please install it with `pip install opentelemetry-instrumentation-langchain`."
-            )
-
     def _convert_to_traceloop_types(self, io_dict: dict[str | Any, Any]) -> dict[str, Any]:
         """Converts data types to Traceloop compatible formats."""
         return {str(key): self._convert_to_traceloop_type(value) for key, value in io_dict.items() if key is not None}
@@ -285,28 +270,24 @@ class TraceloopTracer(BaseTracer):
         """Recursively converts a value to a Traceloop compatible type."""
         if isinstance(value, dict):
             value = {key: self._convert_to_traceloop_type(val) for key, val in value.items()}
-
         elif isinstance(value, list):
             value = [self._convert_to_traceloop_type(v) for v in value]
-
         elif isinstance(value, Message):
             value = value.text
-
         elif isinstance(value, Data):
             value = value.get_text()
-
         elif isinstance(value, (BaseMessage | HumanMessage | SystemMessage)):
             value = value.content
-
         elif isinstance(value, Document):
             value = value.page_content
-
         elif isinstance(value, types.GeneratorType | type(None)):
             value = str(value)
-
         elif isinstance(value, float) and not math.isfinite(value):
             value = "NaN"
-
+        elif isinstance(value, (str | int | float | bool)) or value is None:
+            return value
+        else:
+            value = str(value)
         return value
 
     @staticmethod
